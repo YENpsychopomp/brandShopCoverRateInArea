@@ -24,8 +24,11 @@
    - 浮動資訊框展示覆蓋率、店鋪數量、抽樣點數
 
 ---
+## 範例畫面
+<img width="2558" height="1229" alt="螢幕擷取畫面 2025-08-17 151725" src="https://github.com/user-attachments/assets/da008d4c-c998-47d2-9502-e191b2a70497" />
 
 ## 安裝與依賴
 
 ```bash
 pip install requests folium shapely geopy pyproj overpy numpy numba
+```
