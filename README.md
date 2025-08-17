@@ -1,0 +1,2 @@
+# brandShopCoverRateInArea
+指定商店在某一區域的覆蓋率
