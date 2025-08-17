@@ -159,14 +159,14 @@ def show_map(polygon, stores, radius=500, sample_points=None, coverage=0, sample
 
 # ===== 主程式 =====
 if __name__ == "__main__":
-    city = "Taichung"
-    brand = "50嵐"
+    city = "Taipei"
+    brand = "萊爾富"
     radius = 800 #單位(公尺) 表方圓{radius}公尺
     
     polygon = get_area_polygon(city)
     stores = get_brand_locations_overpass(polygon, brand)
     
-    samples = auto_samples(polygon, density_per_km2=50)
+    samples = auto_samples(polygon, density_per_km2=200)
     print(f"Monte Carlo 抽樣點數：{samples}")
     
     if stores:
