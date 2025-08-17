@@ -30,5 +30,12 @@
 ## 安裝與依賴
 
 ```bash
-pip install requests folium shapely geopy pyproj overpy numpy numba
+pip install requests folium shapely geopy pyproj overpy numba numpy
+```
+##使用
+修改最底下的參數
+```python
+city = "Kaohsiung"          # 城市名稱 (英文)
+brand = "全家便利商店"       # 品牌名稱
+radius = 500                # 覆蓋半徑 (公尺)
 ```
