@@ -4,6 +4,7 @@ import random
 from shapely.geometry import shape, Point, Polygon, MultiPolygon
 from geopy.distance import geodesic
 from pyproj import Geod
+import numpy as np
 import overpy
 
 geod = Geod(ellps="WGS84")
@@ -65,26 +66,46 @@ def get_brand_locations_overpass(polygon, brand):
     print(f"總共找到 {len(stores)} 家 {brand}")
     return stores
 
+def haversine(lats1, lons1, lats2, lons2):
+    R = 6371000.0  # 地球半徑 (m)
+    dlat = lats2 - lats1
+    dlon = lons2 - lons1
+    a = np.sin(dlat/2)**2 + np.cos(lats1) * np.cos(lats2) * np.sin(dlon/2)**2
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
+    return R * c
+
 # ===== 3. 覆蓋率計算 (Monte Carlo) =====
 def calculate_coverage(polygon, stores, radius=500, samples=5000):
     minx, miny, maxx, maxy = polygon.bounds
-    covered = 0
-    total = 0
-    sample_points = []
     
-    for _ in range(samples):
-        x = random.uniform(minx, maxx)
-        y = random.uniform(miny, maxy)
-        p = Point(x, y)
-        if not polygon.contains(p):
-            continue
-        total += 1
-        is_covered = any(geodesic((y, x), s).meters <= radius for s in stores)
-        if is_covered:
-            covered += 1
-        sample_points.append((y, x, is_covered))  # (lat, lon, covered)
+    # === 1. 隨機點 (批次) ===
+    xs = np.random.uniform(minx, maxx, samples*2)  
+    ys = np.random.uniform(miny, maxy, samples*2)
+    pts = np.array([(x, y) for x, y in zip(xs, ys) if polygon.contains(Point(x, y))])
+    if len(pts) > samples:
+        pts = pts[:samples]
     
-    coverage_ratio = covered / total if total > 0 else 0
+    # === 2. 確保 stores 是 float ===
+    store_lats = np.array([float(s[0]) for s in stores])
+    store_lons = np.array([float(s[1]) for s in stores])
+    
+    # === 3. 向量化距離計算 ===
+    lats1 = np.radians(pts[:,1])[:,None]   # (N,1)
+    lons1 = np.radians(pts[:,0])[:,None]
+    lats2 = np.radians(store_lats)[None,:] # (1,M)
+    lons2 = np.radians(store_lons)[None,:]
+
+    dist_matrix = haversine(lats1, lons1, lats2, lons2)
+    
+    # === 4. 判斷覆蓋 ===
+    min_dist = dist_matrix.min(axis=1)
+    covered_mask = min_dist <= radius
+    coverage_ratio = covered_mask.mean()
+
+    # === 5. 輸出 sample_points
+    sample_points = [(lat, lon, covered) 
+                     for (lon, lat), covered in zip(pts, covered_mask)]
+
     return coverage_ratio, sample_points
 
 
@@ -138,14 +159,14 @@ def show_map(polygon, stores, radius=500, sample_points=None, coverage=0, sample
 
 # ===== 主程式 =====
 if __name__ == "__main__":
-    city = "Kaohsiung"
-    brand = "萊爾富"
-    radius = 800
+    city = "Taichung"
+    brand = "50嵐"
+    radius = 800 #單位(公尺) 表方圓{radius}公尺
     
     polygon = get_area_polygon(city)
     stores = get_brand_locations_overpass(polygon, brand)
     
-    samples = auto_samples(polygon, density_per_km2=200)
+    samples = auto_samples(polygon, density_per_km2=50)
     print(f"Monte Carlo 抽樣點數：{samples}")
     
     if stores:
